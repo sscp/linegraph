@@ -1,0 +1,29 @@
+<!doctype html5>
+<html>
+<head>
+<title></title>
+<script id="shader-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  varying vec4 vColor;
+
+  void main(void) {
+    gl_FragColor = vColor; 
+  }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  attribute vec2 aVertexPosition;
+  attribute vec4 aVertexColor;
+  varying vec4 vColor;
+  void main(void) {
+    gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+    vColor = aVertexColor;
+  }
+</script>
+<script type="text/javascript" src="./gl-matrix.js"></script>
+<script type="text/javascript" src="./graphics.js"></script>
+</head>
+<body onload="init();">
+<canvas id="mainCanvas" style="border: none;" width="800" height="600"></canvas>
+</body>
+</html>
