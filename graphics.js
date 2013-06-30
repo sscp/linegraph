@@ -16,6 +16,26 @@ function setMatrixUniforms()
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
 
+function initTextureFromCanvas(canvasElementId) {
+    canvasTexture = gl.createTexture();
+    return handleLoadedTexture(canvasTexture, document.getElementById(canvasElementId));
+}
+
+function handleLoadedTexture(texture, textureCanvas) {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureCanvas); // This is the important line!
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    return texture;
+}
+
+/*
 function handleLoadedTexture(texture) 
 {
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -42,7 +62,7 @@ function initTexture()
     testTexture.image.onload = function() {
       handleLoadedTexture(testTexture)
     }
-}
+}*/
 
 function generateChart(data)
 {
@@ -63,6 +83,42 @@ function generateChart(data)
     }
     return [vertices, numVerts];
 }
+
+
+function TextBuffer()
+{
+  
+}
+function initTextBuffers()
+{
+  var vertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1.0, -1.0, 
+      1.0, -1.0, 
+      -1.0, 1.0, 
+      -1.0, 1.0, 
+      1.0, -1.0, 
+      1.0,  1.0]), gl.STATIC_DRAW);
+  vertexBuffer.itemSize = 2;
+  vertexBuffer.numItems = 6;
+
+  var textureBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      0.0, 0.0, 
+      1.0, 0.0, 
+      0.0, 1.0, 
+      0.0, 1.0, 
+      1.0, 0.0, 
+      1.0, 1.0]), gl.STATIC_DRAW);
+  vertexBuffer.itemSize = 2;
+  vertexBuffer.numItems = 6;
+
+  return 
+}
+
 
 function initBuffers()
 {
@@ -181,6 +237,18 @@ function initShaders() {
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+} 
+
+function initFontCanvas() {
+  var canvas = document.getElementById('fontCanvas');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.font = "12px monospace";
+  ctx.fillText(" !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", 0, 0);
 }
 
 function init()
@@ -193,7 +261,9 @@ function init()
     vertices = initBuffers();
     gl.clearColor(0.0,0.0,0.0,1.0);
     gl.enable(gl.DEPTH_TEST);
-
+    initFontCanvas();
+    fontTexture = initTextureFromCanvas('fontCanvas');
+    gl.bindTexture(gl.TEXTURE_2D, fontTexture);
     (function animate() {
       window.requestAnimationFrame((function() {
         drawScene(vertices);

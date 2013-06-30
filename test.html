@@ -20,10 +20,34 @@
     vColor = aVertexColor;
   }
 </script>
+
+<script id="font-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  varying vec4 vColor;
+
+  void main(void) {
+    gl_FragColor = vColor; 
+  }
+</script>
+
+<script id="font-vs" type="x-shader/x-vertex">
+  attribute vec2 aVertexPosition;
+  attribute vec2 vTexCoord;
+
+  uniform int 
+  varying vec4 vColor;
+  void main(void) {
+    gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+    vColor = aVertexColor;
+  }
+</script>
+
 <script type="text/javascript" src="./gl-matrix.js"></script>
 <script type="text/javascript" src="./graphics.js"></script>
 </head>
 <body onload="init();">
 <canvas id="mainCanvas" style="border: none;" width="800" height="600"></canvas>
+<canvas id="fontCanvas" width="1024" height="16"></canvas> <!-- 665 x 14 in reality -->
+
 </body>
 </html>
