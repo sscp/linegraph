@@ -40,6 +40,8 @@ function TextBuffer()
 {
 
 }
+
+
 function initTextBuffers()
 {
   var vertexBuffer = gl.createBuffer();
@@ -72,7 +74,7 @@ function initTextBuffers()
 
 
 
-function LineGraph(shaderProgram, lineColor) {
+function LineGraph(shaderProgram, timeLength, lineColor) {
     this.shaderProgram = shaderProgram;
     this.lineColor = lineColor;
     this.vertices = [-1.0,0.0,1.0,0.0];
@@ -91,10 +93,23 @@ function LineGraph(shaderProgram, lineColor) {
     this.colorBuffer.itemSize = 4;
     this.colorBuffer.numItems = 0;
 
-    this.timeLength = 5000;
+    this.timeLength = timeLength;
     this.lastTime = (new Date).getTime();
 
 }
+
+LineGraph.prototype.setTimeLength = function(timeLength) {
+    this.timeLength = timeLength;
+    this.vertices = [-1.0,0.0,1.0,0.0];
+    this.colors = this.lineColor.concat(this.lineColor);
+    this.vertexBuffer.numItems = 0;
+    this.colorBuffer.numItems = 0;
+}
+
+LineGraph.prototype.increaseTimeLength = function() {
+    this.setTimeLength(this.timeLength*2.0);
+}
+
 
 LineGraph.prototype.addDataPoint = function(timestamp, data) {
     var shift_left = 2.0*(timestamp - this.lastTime)/this.timeLength;
@@ -236,7 +251,21 @@ function init()
   initFontCanvas();
   fontTexture = initTextureFromCanvas('fontCanvas');
   gl.bindTexture(gl.TEXTURE_2D, fontTexture);
-  var linegraphs = [new LineGraph(shaderProgram, [1.0, 0.0, 0.0, 1.0]), new LineGraph(shaderProgram, [0.0, 1.0, 0.0, 1.0])];
+
+  var linegraphs = [new LineGraph(shaderProgram, 5000, [1.0, 0.0, 0.0, 1.0]), new LineGraph(shaderProgram, 5000, [0.0, 1.0, 0.0, 1.0])];
+
+  document.getElementById('increaseTimeLength').onclick = function() {
+    for(var i=0;i<linegraphs.length;i++) {
+      linegraphs[i].setTimeLength(linegraphs[i].timeLength*2);
+    }
+  };
+
+  document.getElementById('decreaseTimeLength').onclick = function() {
+    for(var i=0;i<linegraphs.length;i++) {
+      linegraphs[i].setTimeLength(linegraphs[i].timeLength/2);
+    }
+  };
+
   (function animate() {
    window.requestAnimationFrame((function() {
        linegraphs[0].addDataPoint((new Date).getTime(), Math.sin((new Date).getTime()/100));  
