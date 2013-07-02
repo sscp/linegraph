@@ -79,7 +79,7 @@ function LineGraph(shaderProgram, timeLength, lineColor) {
     this.lineColor = lineColor;
     this.vertices = [-1.0,0.0,1.0,0.0];
     this.colors = lineColor.concat(lineColor);
-
+    this.vertMax = 1.0;
     this.vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);    
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.DYNAMIC_DRAW);
@@ -106,6 +106,15 @@ LineGraph.prototype.setTimeLength = function(timeLength) {
     this.colorBuffer.numItems = 0;
 }
 
+LineGraph.prototype.setVerticalMax = function(vertMax) {
+    for(var i=1;i<this.vertices.length;i+=2) {
+        this.vertices[i]*=(this.vertMax/vertMax);
+    }
+
+    this.vertMax = vertMax;
+}
+
+
 LineGraph.prototype.increaseTimeLength = function() {
     this.setTimeLength(this.timeLength*2.0);
 }
@@ -120,7 +129,7 @@ LineGraph.prototype.addDataPoint = function(timestamp, data) {
     this.vertices.push(this.vertices[this.vertices.length-2],
             this.vertices[this.vertices.length-1],
             this.vertices[this.vertices.length-2]+shift_left,
-            data);
+            data/this.vertMax);
     this.colors = this.colors.concat(this.lineColor, this.lineColor);
 
     if(this.vertices.length >= (8/shift_left)) {
@@ -265,6 +274,19 @@ function init()
       linegraphs[i].setTimeLength(linegraphs[i].timeLength/2);
     }
   };
+
+  document.getElementById('increaseVertMax').onclick = function() {
+    for(var i=0;i<linegraphs.length;i++) {
+      linegraphs[i].setVerticalMax(linegraphs[i].vertMax*2);
+    }
+  };
+
+  document.getElementById('decreaseVertMax').onclick = function() {
+    for(var i=0;i<linegraphs.length;i++) {
+      linegraphs[i].setVerticalMax(linegraphs[i].vertMax/2);
+    }
+  };
+
 
   (function animate() {
    window.requestAnimationFrame((function() {
