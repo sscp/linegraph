@@ -1,14 +1,14 @@
 var data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 data = data.concat(data, data)
 
-var vertexBuffer;
 var textureBuffer;
-var colorBuffer;
 var pMatrix;
 var mvMatrix;
 var gl;
 var shaderProgram;
 var testTexture;
+var graphTimeLength = 60000;
+var graphLastTime = (new Date).getTime();
 
 function setMatrixUniforms()
 {
@@ -33,55 +33,6 @@ function handleLoadedTexture(texture, textureCanvas) {
   gl.bindTexture(gl.TEXTURE_2D, null);
 
   return texture;
-}
-
-/*
-function handleLoadedTexture(texture) 
-{
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-    
-    gl.bindTexture(gl.TEXTURE_2D, null);
-
-    gl.clearColor(0.0,0.0,0.0,1.0);
-    gl.enable(gl.DEPTH_TEST);
-
-    drawScene();
-}
-
-function initTexture()
-{
-    testTexture = gl.createTexture();
-    testTexture.image = new Image();
-    testTexture.image.src = "./test.png";
-    testTexture.image.onload = function() {
-      handleLoadedTexture(testTexture)
-    }
-}*/
-
-function generateChart(data)
-{
-  var vertices = new Array();
-  var texcoords = new Array();
-  var numVerts = 0;
-  var yMax = Math.max.apply(Math, data);
-  var yMin = Math.min.apply(Math, data);
-
-  for(var i=0;i<data.length-1;i++)
-  {
-    numVerts+=2;
-
-    vertices.push((2.0/data.length)*i-1.0);
-    vertices.push(2.0*(data[i]-yMin)/(yMax-yMin) - 1.0);
-    vertices.push((2.0/data.length)*(i+1)-1.0);
-    vertices.push(2.0*(data[i+1]-yMin)/(yMax-yMin) - 1.0);
-  }
-  return [vertices, numVerts];
 }
 
 
@@ -120,67 +71,73 @@ function initTextBuffers()
 }
 
 
-function initBuffers()
-{
-  vertexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-  var chart = generateChart(data);
-  var vertices = chart[0];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
-  vertexBuffer.itemSize = 2;
-  vertexBuffer.numItems = chart[1];
 
-  colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+function LineGraph(shaderProgram, lineColor) {
+    this.shaderProgram = shaderProgram;
+    this.lineColor = lineColor;
+    this.vertices = [-1.0,0.0,1.0,0.0];
+    this.colors = lineColor.concat(lineColor);
 
-  var colors = [];
-  for(var i=0;i<chart[1];i++)
-  {
-    colors = colors.concat([1.0, 1.0, 0.0, 1.0]);
-  }
+    this.vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);    
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.DYNAMIC_DRAW);
+    this.vertexBuffer.itemSize = 2;
+    this.vertexBuffer.numItems = 0;
+    
+    this.colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
 
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.DYNAMIC_DRAW);
-  colorBuffer.itemSize = 4;
-  colorBuffer.numItems = chart[1];
-  return [vertices, colors];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.DYNAMIC_DRAW);
+    this.colorBuffer.itemSize = 4;
+    this.colorBuffer.numItems = 0;
+
+    this.timeLength = 5000;
+    this.lastTime = (new Date).getTime();
+
 }
 
-function drawScene(vertices, colors)
-{
-  var shift_left = (1.0/200);
-  for(var i=0;i<vertices.length;i+=2)
-  {
-    vertices[i]=vertices[i]-shift_left;
-  }
+LineGraph.prototype.addDataPoint = function(timestamp, data) {
+    var shift_left = 2.0*(timestamp - this.lastTime)/this.timeLength;
+    for(var i=0;i<this.vertices.length;i+=2) {
+        this.vertices[i]=this.vertices[i]-shift_left;
+    }
 
-  vertices.push(vertices[vertices.length-2], vertices[vertices.length-1], vertices[vertices.length-2]+shift_left, Math.random()*0.25-0.125);
-  
-  colors.push(0.0, 1.0, 0.0, 1.0);
-  colors.push(0.0, 1.0, 0.0, 1.0);
+    this.vertices.push(this.vertices[this.vertices.length-2],
+            this.vertices[this.vertices.length-1],
+            this.vertices[this.vertices.length-2]+shift_left,
+            data);
+    this.colors = this.colors.concat(this.lineColor, this.lineColor);
 
-  if(vertices.length >= (8/shift_left)) {
-    vertices.splice(0, 4);
-    colors.splice(0, 8);
-  } 
+    if(this.vertices.length >= (8/shift_left)) {
+        this.vertices.splice(0, 4);
+        this.colors.splice(0, 8);
+    } 
+    this.colorBuffer.numItems = Math.floor(this.colors.length/4);
+    this.vertexBuffer.numItems = Math.floor(this.vertices.length/2);
+    this.lastTime = timestamp;
+}
 
-  colorBuffer.numItems = Math.floor(colors.length/4);
-  vertexBuffer.numItems = Math.floor(vertices.length/2);
+LineGraph.prototype.render = function() {
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.DYNAMIC_DRAW);    
+    gl.vertexAttribPointer(this.shaderProgram.vertexPositionAttribute, this.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(this.shaderProgram.vertexColorAttribute, this.colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.uniform1i(this.shaderProgram.samplerUniform, 0);
+    setMatrixUniforms();
+    gl.drawArrays(gl.LINES, 0, this.colorBuffer.numItems);
+}
+
+
+function drawScene(linegraphs) {
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);    
-  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.DYNAMIC_DRAW);
-  gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
   
-  gl.uniform1i(shaderProgram.samplerUniform, 0);
-  setMatrixUniforms();
-  gl.drawArrays(gl.LINES, 0, colorBuffer.numItems);
-}
-
-function addDataPoint(timestamp, data)
-{
+  for(var i=0;i<linegraphs.length;i++) {
+    linegraphs[i].render();
+  }
 }
 
 function initGL(canvas)
@@ -274,17 +231,18 @@ function init()
   var canvas = document.getElementById("mainCanvas");
   initGL(canvas);
   initShaders();
-  var buffers = initBuffers();
-  var vertices = buffers[0];
-  var colors = buffers[1];
   gl.clearColor(0.0,0.0,0.0,1.0);
   gl.enable(gl.DEPTH_TEST);
   initFontCanvas();
   fontTexture = initTextureFromCanvas('fontCanvas');
   gl.bindTexture(gl.TEXTURE_2D, fontTexture);
+  var linegraphs = [new LineGraph(shaderProgram, [1.0, 0.0, 0.0, 1.0]), new LineGraph(shaderProgram, [0.0, 1.0, 0.0, 1.0])];
   (function animate() {
    window.requestAnimationFrame((function() {
-       drawScene(vertices, colors);
+       linegraphs[0].addDataPoint((new Date).getTime(), Math.sin((new Date).getTime()/100));  
+       linegraphs[1].addDataPoint((new Date).getTime(), Math.cos((new Date).getTime()/100));    
+
+       drawScene(linegraphs);
        window.setTimeout(animate, 1000/60); // 1000/60
        }));
    })();
