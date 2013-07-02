@@ -114,7 +114,6 @@ LineGraph.prototype.setVerticalMax = function(vertMax) {
     this.vertMax = vertMax;
 }
 
-
 LineGraph.prototype.increaseTimeLength = function() {
     this.setTimeLength(this.timeLength*2.0);
 }
