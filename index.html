@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<title></title>
+<style type="text/css">
+@font-face {  
+  font-family: "libmono";  
+    src: url('font/LiberationMono-Regular.ttf');  
+    }  
+</style>
+<script id="shader-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  varying vec4 vColor;
+
+  void main(void) {
+    gl_FragColor = vColor; 
+  }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  attribute vec2 aVertexPosition;
+  uniform vec4 color;
+  uniform vec2 offset;
+  uniform vec2 scale;
+  varying vec4 vColor;
+  void main(void) {
+    gl_Position = vec4((aVertexPosition-offset)*scale, 0.0, 1.0);
+    vColor = color;
+  }
+</script>
+
+<script id="font-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  varying vec2 vTextureCoord;
+  varying vec4 vColor;
+  uniform sampler2D uSampler;
+
+  void main(void) {
+    gl_FragColor = vColor*texture2D(uSampler, vTextureCoord); 
+  }
+</script>
+
+<script id="font-vs" type="x-shader/x-vertex">
+  attribute vec2 aVertexPosition;
+  attribute vec2 aTextureCoord;
+  uniform float character;
+  uniform vec2 position;
+  uniform vec4 color;
+  varying vec2 vTextureCoord;
+  varying vec4 vColor;
+  void main(void) {
+    gl_Position = vec4(aVertexPosition+position, 0.0, 1.0);
+    vTextureCoord = aTextureCoord + vec2(character*7.0/1024.0, 0);
+    vColor = color;
+  }
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+<script type="text/javascript" src="./gl-matrix.js"></script>
+<script type="text/javascript" src="./shader.js"></script>
+<script type="text/javascript" src="./textrender.js"></script>
+<script type="text/javascript" src="./linegraph.js"></script>
+</head>
+<body onload="init();">
+<div class="container">
+<div class="row">
+<div class="span9">
+<canvas id="mainCanvas" style="border: solid 2px #444;" width="1024" height="550"></canvas></div>
+</div>
+<div class="row">
+<div class="span9">
+<button type="button" id="decreaseTimeLength">-Time</button>
+<button type="button" id="increaseTimeLength">+Time</button>
+<button type="button" id="decreaseVertMax">-VertMax</button>
+<button type="button" id="increaseVertMax">+VertMax</button>
+<button type="button" id="decreaseVertOffset">-VertOffset</button>
+<button type="button" id="increaseVertOffset">+VertOffset</button>
+<button type="button" id="fitVert">Fit Graph</button>
+
+</div></div>
+<div class="row">
+<div class="span9">
+<select id="selectDevice"></select>
+<select id="selectParameter"></select>
+<button type="button" id="addParameter">Add Parameter</button>
+<button type="button" id="delParameter">Delete Parameter</button>
+</div>
+</div>
+</div>
+<canvas id="fontCanvas" width="1024" height="16" hidden></canvas> <!-- 665 x 14 in reality -->
+<div style="font-family: libmono">.</div>
+
+<script src="./bootstrap/js/jquery.js"></script>
+<script src="./bootstrap/js/bootstrap.min.js"></script>
+</body>
+</html>
